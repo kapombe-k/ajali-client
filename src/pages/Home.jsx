@@ -9,7 +9,7 @@ const Index = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-blue-900 to-gray-900 flex flex-col">
       
-      <NavBar />
+      {/* <NavBar /> */}
 
       <main className="flex-1 flex items-center justify-center px-4 sm:px-6 lg:px-8 py-12">
         <div className="max-w-6xl w-full grid lg:grid-cols-2 gap-12 items-center">
@@ -89,32 +89,6 @@ const Index = () => {
               </div>
             </div>
           </div>
-
-          {/* Right Image */}
-          <div className="relative hidden lg:block">
-            <div className="relative overflow-hidden rounded-2xl shadow-2xl border border-white/10">
-              <div className="absolute inset-0 bg-gradient-to-br from-red-500/10 to-blue-500/10 rounded-2xl"></div>
-              <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1605106702734-205df224ecce?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1470&q=80')] bg-cover bg-center mix-blend-overlay opacity-30 rounded-2xl"></div>
-              <div className="relative h-[500px] flex items-center justify-center p-8">
-                <div className="text-center space-y-6">
-                  <div className="inline-flex items-center justify-center p-4 bg-red-500/20 rounded-full border border-red-500/30">
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      className="h-12 w-12 text-red-400"
-                      viewBox="0 0 20 20"
-                      fill="currentColor"
-                    >
-                      <path
-                        fillRule="evenodd"
-                        d="M9.401 3.003c1.155-2 4.043-2 5.197 0l7.355 12.748c1.154 2-.29 4.5-2.599 4.5H4.645c-2.309 0-3.752-2.5-2.598-4.5L9.4 3.003zM12 8a1 1 0 10-2 0v3a1 1 0 002 0V8zm-1 6a1 1 0 100 2h1a1 1 0 100-2h-1z"
-                        clipRule="evenodd"
-                      />
-                    </svg>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
         </div>
        
       </main>
@@ -122,7 +96,7 @@ const Index = () => {
       {/* Footer */}
       <footer className="py-8 px-4 border-t border-white/10 bg-gradient-to-r from-transparent via-white/5 to-transparent">
         <div className="max-w-6xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-4">
-          <div className="text-white/60 text-sm flex items-center gap-2">
+          {/* <div className="text-white/60 text-sm flex items-center gap-2">
             <svg
               xmlns="http://www.w3.org/2000/svg"
               className="h-5 w-5 text-red-500"
@@ -136,7 +110,7 @@ const Index = () => {
               />
             </svg>
             © 2025 Ajali Inc. All rights reserved.
-          </div>
+          </div> */}
 
           <button
             onClick={handleContactUs}

@@ -92,7 +92,11 @@ const router = createBrowserRouter([
   },
   {
     path: "/",
-    element:<Index/>
+    element: (
+      <MainLayout>
+        <Index />
+      </MainLayout>
+    ),
   },
  {
     path: "/signup",

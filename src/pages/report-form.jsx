@@ -211,7 +211,7 @@ export default function ReportForm({ locationData, setLocationData }) {
             />
           </div>
 
-          <div>
+          <div className="absolute opacity-0 h-0 w-0 overflow-hidden">
             <label className="block text-sm font-medium text-blue-300 mb-2">
               Location Coordinates
             </label>
