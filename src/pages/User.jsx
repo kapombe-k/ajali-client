@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { BASE_URL } from "../../utils";
 
 export function User() {
@@ -9,14 +9,30 @@ export function User() {
   const [password, setpassword] = useState("");
   const [phone_number, setphone_number] = useState("");
   const [message, setMessage] = useState(null);
-  
+  const navigate = useNavigate();
+  const [isLoading, setIsLoading] = useState(false);
+
+  const validateForm = () => {
+    if (password.length < 8) {
+      setMessage({ type: "error", text: "Password must be at least 8 characters" });
+      return false;
+    }
+    if (!/\d/.test(password)) {
+      setMessage({ type: "error", text: "Password must contain a number" });
+      return false;
+    }
+    return true;
+  };
 
   const handleSignup = async (e) => {
     e.preventDefault();
     setMessage(null);
 
+    if (!validateForm()) return;
+
+    setIsLoading(true);
     try {
-      const res = await fetch(`${BASE_URL}/user`, {
+      const res = await fetch(`${BASE_URL}/users`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -24,27 +40,38 @@ export function User() {
           last_name,
           email,
           password,
-          phone_number: phone_number,
+          phone_number,
+          role: 'user'  //added default role
         }),
       });
 
       const data = await res.json();
 
       if (res.ok) {
+        if (data.access_token) {
+          localStorage.setItem('accessToken', data.access_token);
+          localStorage.setItem('refreshToken', data.refresh_token);
+        }
+
         setMessage({
           type: "success",
-          text: "Signup successful! Please login.",
+          text: data.message || "Signup successful! Redirecting to login...",
         });
-        setlast_name("");
-        setfirst_name("");
-        setemail("");
-        setpassword("");
-        setphone_number("");
+        setTimeout(() => {
+          setlast_name("");
+          setfirst_name("");
+          setemail("");
+          setpassword("");
+          setphone_number("");
+          navigate("/login");
+        }, 2000);
       } else {
-        setMessage({ type: "error", text: data.error || "Signup failed" });
+        setMessage({ type: "error", text: data.message || "Signup failed" });
       }
     } catch (error) {
-      setMessage({ type: "error", text: "Network error" });
+      setMessage({ type: "error", text: error.message || "Network error" });
+    } finally {
+      setIsLoading(false);
     }
   };
   return (
@@ -156,9 +183,10 @@ export function User() {
 
           <button
             type="submit"
-            className="w-full py-3 bg-green-600 hover:bg-red-700 text-white font-semibold rounded-lg transition duration-200"
+            disabled={isLoading}
+            className={`w-full py-3 ${isLoading ? 'bg-gray-500' : 'bg-green-600 hover:bg-red-700'} text-white font-semibold rounded-lg transition duration-200`}
           >
-            Sign Up
+            {isLoading ? 'Signing Up...' : 'Sign Up'}
           </button>
         </form>
         <p className="text-center text-sm text-gray-500 mt-6">
