@@ -8,18 +8,21 @@ export function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [message, setMessage] = useState(null);
+  const [isLoading, setIsLoading] = useState(false);
   const { setUser } = useAuth();
   const navigate = useNavigate();
 
   const handleLogin = async (e) => {
     e.preventDefault();
     setMessage(null);
+    setIsLoading(true);
 
     try {
 
       const res = await fetch(`${BASE_URL}/login`, {
 
         method: "POST",
+        credentials: 'include',
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),
       });
@@ -31,13 +34,17 @@ export function Login() {
         localStorage.setItem("user", JSON.stringify(data.user));
 
         setUser(data.user); // update AuthContext
-        setMessage({ type: "success", text: "Login successful!" });
-        navigate("/home");
+        setMessage({ type: "success", text: "Login successful! Redirecting..." });
+        setTimeout(() => {
+          navigate("/home");
+        }, 2000);
       } else {
-        setMessage({ type: "error", text: data.error || "Login failed" });
+        setMessage({ type: "error", text: data.message || "Login failed" });
       }
     } catch (error) {
-      setMessage({ type: "error", text: "Network error" });
+      setMessage({ type: "error", text: error.message || "Network error" });
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -99,9 +106,11 @@ export function Login() {
           </div>
           <button
             type="submit"
-            className="w-full py-3 bg-green-600 hover:bg-red-700 text-white font-semibold rounded-lg transition duration-200"
+            disabled={isLoading}
+            className={`w-full py-3 ${isLoading ? 'bg-gray-600' : 'bg-green-600 hover:bg-red-700'
+              } text-white font-semibold rounded-lg transition duration-200`}
           >
-            Login
+            {isLoading ? 'Logging in...' : 'Login'}
           </button>
         </form>
 
