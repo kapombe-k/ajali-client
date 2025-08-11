@@ -49,58 +49,73 @@ export function User() {
 
     setIsLoading(true);
     try {
+      const payload = {
+        first_name: first_name.trim(),
+        last_name: last_name.trim(),
+        email: email.trim().toLowerCase(),
+        password: password.trim(),  // Add trim here
+        phone_number: phone_number.trim(),
+        role: 'user'
+      };
+      console.log('Signup payload:', payload);  // Debug log
+
       const res = await fetch(`${BASE_URL}/users`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          first_name: first_name.trim(),
-          last_name: last_name.trim(),
-          email: email.trim().toLowerCase(),
-          password: password,
-          phone_number: phone_number.trim(),
-          role: 'user'  //added default role
-        }),
+        body: JSON.stringify(payload),
       });
 
-      const responseData = await res.json();
+      let responseData;
+      try {
+        responseData = await res.json();
+      } catch (jsonError) {
+        // Handle non-JSON responses
+        throw new Error('Invalid response from server');
+      }
       console.log("SignupLog", responseData);
-      if (res.ok) {
 
-        if (responseData.success) {
-          const userData = responseData.data;
-        
-          if (userData.access_token && userData.refresh_token) {
-            localStorage.setItem('access_token', userData.access_token);
-            localStorage.setItem('refresh_token', userData.refresh_token);
-          }
-          if (userData.user) {
-            localStorage.setItem("user_id", JSON.stringify(userData.user.id));
-            localStorage.setItem("user_role", JSON.stringify(userData.user.role));
-            localStorage.setItem("user_name", JSON.stringify(userData.user.name));
-            localStorage.setItem("user_email", JSON.stringify(userData.user.email));
-          }
-        }
+      if (!res.ok) {
         setMessage({
-          type: "success",
-          text: data.message || "Signup successful! Redirecting to login...",
+          type: "error",
+          text: responseData.message || `Signup failed (Error ${res.status})`
         });
-        setTimeout(() => {
-          setlast_name("");
-          setfirst_name("");
-          setemail("");
-          setpassword("");
-          setphone_number("");
-          navigate("/login");// to implement better routing logic for users
-        }, 2000);
-      } 
-      setMessage({ type: "error", text: responseData.message || "Signup failed" });
-      // } else {
-      //   if (responseData.success === false) {
-      //     setMessage({ type: "error", text: responseData.message || "Signup failed" });
-      //   } else {
-      //     setMessage({ type: "error", text: "An unexpected error occurred" });
-      //   }
-      // }
+        return;
+      }
+
+      if (!responseData.success) {
+        setMessage({
+          type: "error",
+          text: responseData.message || "Signup failed"
+        });
+        return;
+      }
+
+      // Success path
+      const userData = responseData.data;
+      if (userData.access_token && userData.refresh_token) {
+        localStorage.setItem('access_token', userData.access_token);
+        localStorage.setItem('refresh_token', userData.refresh_token);
+      }
+      if (userData.user) {
+        localStorage.setItem("user_id", userData.user.id);  // No JSON.stringify needed for primitives
+        localStorage.setItem("user_role", userData.user.role);
+        localStorage.setItem("user_name", userData.user.name);
+        localStorage.setItem("user_email", userData.user.email);
+      }
+
+      setMessage({
+        type: "success",
+        text: responseData.message || "Signup successful! Redirecting to login..."
+      });
+
+      setTimeout(() => {
+        setFirstName("");  // Fix setter names
+        setLastName("");
+        setEmail("");
+        setPassword("");
+        setPhoneNumber("");
+        navigate("/login");
+      }, 2000);
     } catch (error) {
       setMessage({ type: "error", text: error.message || "Network error" });
     } finally {
