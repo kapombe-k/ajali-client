@@ -53,7 +53,7 @@ export function User() {
         first_name: first_name.trim(),
         last_name: last_name.trim(),
         email: email.trim().toLowerCase(),
-        password: password.trim(),  // Add trim here
+        password: password,  // Add trim here???
         phone_number: phone_number.trim(),
         role: 'user'
       };
@@ -109,7 +109,7 @@ export function User() {
       });
 
       setTimeout(() => {
-        setFirstName("");  // Fix setter names
+        setFirstName("");  // Fix for setter names
         setLastName("");
         setEmail("");
         setPassword("");
