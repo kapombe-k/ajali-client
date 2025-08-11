@@ -21,8 +21,25 @@ export function User() {
       setMessage({ type: "error", text: "Password must contain a number" });
       return false;
     }
+    if (!/[A-Z]/.test(password)) {
+      setMessage({type: 'error', text: 'Password must contain at least one uppercase letter'});
+      return false;
+    }
+    if (!/\S+@\S+\.\S+/.test(email)) {
+      setMessage({ type: "error", text: "Invalid email address" });
+      return false;
+    }
+    if (!/^\d{10}$/.test(phone_number)) {
+      setMessage({ type: "error", text: "Phone number must be 10 digits" });
+      return false;
+    }
+    if(phone_number.length < 10){
+      setMessage({ type: 'error', text: 'Please enter a valid phone number' });
+    }
     return true;
   };
+
+
 
   const handleSignup = async (e) => {
     e.preventDefault();
@@ -36,23 +53,33 @@ export function User() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          first_name: first_name,
-          last_name: last_name,
-          email: email,
+          first_name: first_name.trim(),
+          last_name: last_name.trim(),
+          email: email.trim().toLowerCase(),
           password: password,
-          phone_number: phone_number,
+          phone_number: phone_number.trim(),
           role: 'user'  //added default role
         }),
       });
 
-      const data = await res.json();
-
+      const responseData = await res.json();
+      console.log("SignupLog", responseData);
       if (res.ok) {
-        if (data.access_token) {
-          localStorage.setItem('accessToken', data.access_token);
-          localStorage.setItem('refreshToken', data.refresh_token);
-        }
 
+        if (responseData.success) {
+          const userData = responseData.data;
+        
+          if (userData.access_token && userData.refresh_token) {
+            localStorage.setItem('access_token', userData.access_token);
+            localStorage.setItem('refresh_token', userData.refresh_token);
+          }
+          if (userData.user) {
+            localStorage.setItem("user_id", JSON.stringify(userData.user.id));
+            localStorage.setItem("user_role", JSON.stringify(userData.user.role));
+            localStorage.setItem("user_name", JSON.stringify(userData.user.name));
+            localStorage.setItem("user_email", JSON.stringify(userData.user.email));
+          }
+        }
         setMessage({
           type: "success",
           text: data.message || "Signup successful! Redirecting to login...",
@@ -63,11 +90,17 @@ export function User() {
           setemail("");
           setpassword("");
           setphone_number("");
-          navigate("/login");
+          navigate("/login");// to implement better routing logic for users
         }, 2000);
-      } else {
-        setMessage({ type: "error", text: data.message || "Signup failed" });
-      }
+      } 
+      setMessage({ type: "error", text: responseData.message || "Signup failed" });
+      // } else {
+      //   if (responseData.success === false) {
+      //     setMessage({ type: "error", text: responseData.message || "Signup failed" });
+      //   } else {
+      //     setMessage({ type: "error", text: "An unexpected error occurred" });
+      //   }
+      // }
     } catch (error) {
       setMessage({ type: "error", text: error.message || "Network error" });
     } finally {
