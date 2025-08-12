@@ -39,8 +39,6 @@ export function User() {
     return true;
   };
 
-
-
   const handleSignup = async (e) => {
     e.preventDefault();
     setMessage(null);
@@ -99,7 +97,7 @@ export function User() {
       if (userData.user) {
         localStorage.setItem("user_id", userData.user.id);  // No JSON.stringify needed for primitives
         localStorage.setItem("user_role", userData.user.role);
-        localStorage.setItem("user_name", userData.user.name);
+        localStorage.setItem("user_name", `${userData.user.first_name} ${userData.user.last_name}`);
         localStorage.setItem("user_email", userData.user.email);
       }
 
@@ -108,20 +106,26 @@ export function User() {
         text: responseData.message || "Signup successful! Redirecting to login..."
       });
 
+      const dashboardPath = userData.user.role === 'admin'
+        ? '/admin-dashboard'
+        : '/user-dashboard';
+
       setTimeout(() => {
         setFirstName("");  // Fix for setter names
         setLastName("");
         setEmail("");
         setPassword("");
         setPhoneNumber("");
-        navigate("/login");
-      }, 2000);
+        navigate(dashboardPath);
+      }, 1500);
     } catch (error) {
       setMessage({ type: "error", text: error.message || "Network error" });
     } finally {
       setIsLoading(false);
     }
   };
+
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-950 via-blue-950 to-red-950 font-inter text-white relative overflow-hidden p-4 sm:p-6 lg:p-8">
       <div className="relative z-10 max-w-md w-full p-8 sm:p-10 bg-white/5 backdrop-blur-xl rounded-2xl border border-white/10 shadow-2xl space-y-6 animate-fade-in">
