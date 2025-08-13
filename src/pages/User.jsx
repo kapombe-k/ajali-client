@@ -1,130 +1,133 @@
 import { useState } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
 import { Link, useNavigate } from "react-router-dom";
 import { BASE_URL } from "../../utils";
+import { useAuth } from "../components/AuthContext";
+
+// Define Zod schema for form validation
+const signUpSchema = z.object({
+  firstName: z.string().min(2, "First name must be at least 2 characters"),
+  lastName: z.string().min(2, "Last name must be at least 2 characters"),
+  email: z.email("Invalid email address"),
+  password: z.string()
+    .min(8, "Password must be at least 8 characters")
+    .regex(/\d/, "Password must contain at least one number")
+    .regex(/[A-Z]/, "Password must contain at least one uppercase letter"),
+  phoneNumber: z.string()
+    .min(10, "Phone number must be at least 10 digits")
+    .regex(/^\d{10}$/, "Phone number must be exactly 10 digits")
+});
 
 export function User() {
-  const [first_name, setfirst_name] = useState("");
-  const [last_name, setlast_name] = useState("");
-  const [email, setemail] = useState("");
-  const [password, setpassword] = useState("");
-  const [phone_number, setphone_number] = useState("");
-  const [message, setMessage] = useState(null);
   const navigate = useNavigate();
+  const { login } = useAuth(); // Get login function from AuthContext
+  const [message, setMessage] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
 
-  const validateForm = () => {
-    if (password.length < 8) {
-      setMessage({ type: "error", text: "Password must be at least 8 characters" });
-      return false;
+  // Initialize react-hook-form with Zod resolver
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+    reset
+  } = useForm({
+    resolver: zodResolver(signUpSchema),
+    defaultValues: {
+      firstName: "",
+      lastName: "",
+      email: "",
+      password: "",
+      phoneNumber: ""
     }
-    if (!/\d/.test(password)) {
-      setMessage({ type: "error", text: "Password must contain a number" });
-      return false;
-    }
-    if (!/[A-Z]/.test(password)) {
-      setMessage({type: 'error', text: 'Password must contain at least one uppercase letter'});
-      return false;
-    }
-    if (!/\S+@\S+\.\S+/.test(email)) {
-      setMessage({ type: "error", text: "Invalid email address" });
-      return false;
-    }
-    if (!/^\d{10}$/.test(phone_number)) {
-      setMessage({ type: "error", text: "Phone number must be 10 digits" });
-      return false;
-    }
-    if(phone_number.length < 10){
-      setMessage({ type: 'error', text: 'Please enter a valid phone number' });
-    }
-    return true;
-  };
+  });
 
-  const handleSignup = async (e) => {
-    e.preventDefault();
+  const handleSignup = async (formData) => {
     setMessage(null);
-
-    if (!validateForm()) return;
-
     setIsLoading(true);
+
     try {
+      // Prepare payload with snake_case keys
       const payload = {
-        first_name: first_name.trim(),
-        last_name: last_name.trim(),
-        email: email.trim().toLowerCase(),
-        password: password,  // Add trim here???
-        phone_number: phone_number.trim(),
+        first_name: formData.firstName.trim(),
+        last_name: formData.lastName.trim(),
+        email: formData.email.trim().toLowerCase(),
+        password: formData.password,
+        phone_number: formData.phoneNumber.trim(),
         role: 'user'
       };
-      console.log('Signup payload:', payload);  // Debug log
 
       const res = await fetch(`${BASE_URL}/users`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "Accept": "application/json"
+        },
+        credentials: 'include',
         body: JSON.stringify(payload),
       });
 
-      let responseData;
-      try {
-        responseData = await res.json();
-      } catch (jsonError) {
-        // Handle non-JSON responses
-        throw new Error('Invalid response from server');
+      // Check response content type
+      const contentType = res.headers.get('content-type');
+      if (!contentType?.includes('application/json')) {
+        const text = await res.text();
+        throw new Error(`Server error: ${text.slice(0, 100)}`);
       }
-      console.log("SignupLog", responseData);
 
-      if (!res.ok) {
-        setMessage({
-          type: "error",
-          text: responseData.message || `Signup failed (Error ${res.status})`
+      const responseData = await res.json();
+
+      // Handle API errors
+      if (!res.ok || !responseData.success) {
+        const errorMsg = responseData.message || `Signup failed (${res.status})`;
+        throw new Error(errorMsg);
+      }
+
+      // Extract data from response
+      const { user: userData, access_token, refresh_token } = responseData.data;
+
+      // Update auth context
+      if (login) {
+        login({
+          id: userData.id,
+          email: userData.email,
+          name: `${userData.first_name} ${userData.last_name}`,
+          role: userData.role
         });
-        return;
       }
 
-      if (!responseData.success) {
-        setMessage({
-          type: "error",
-          text: responseData.message || "Signup failed"
-        });
-        return;
-      }
+      // Store tokens and user data
+      localStorage.setItem('access_token', access_token);
+      localStorage.setItem('refresh_token', refresh_token);
+      localStorage.setItem('user_id', userData.id);
+      localStorage.setItem('user_role', userData.role);
+      localStorage.setItem('user_name', `${userData.first_name} ${userData.last_name}`);
+      localStorage.setItem('user_email', userData.email);
 
-      // Success path
-      const userData = responseData.data;
-      if (userData.access_token && userData.refresh_token) {
-        localStorage.setItem('access_token', userData.access_token);
-        localStorage.setItem('refresh_token', userData.refresh_token);
-      }
-      if (userData.user) {
-        localStorage.setItem("user_id", userData.user.id);  // No JSON.stringify needed for primitives
-        localStorage.setItem("user_role", userData.user.role);
-        localStorage.setItem("user_name", `${userData.user.first_name} ${userData.user.last_name}`);
-        localStorage.setItem("user_email", userData.user.email);
-      }
-
+      // Show success message
       setMessage({
         type: "success",
-        text: responseData.message || "Signup successful! Redirecting to login..."
+        text: responseData.message || "Signup successful! Redirecting..."
       });
 
-      const dashboardPath = userData.user.role === 'admin'
+      // Redirect based on role
+      const dashboardPath = userData.role === 'admin'
         ? '/admin-dashboard'
         : '/user-dashboard';
 
-      setTimeout(() => {
-        setFirstName("");  // Fix for setter names
-        setLastName("");
-        setEmail("");
-        setPassword("");
-        setPhoneNumber("");
-        navigate(dashboardPath);
-      }, 1500);
+      reset(); // Reset form fields
+      setTimeout(() => navigate(dashboardPath), 1500);
+
     } catch (error) {
-      setMessage({ type: "error", text: error.message || "Network error" });
+      console.error("Signup Error:", error);
+      setMessage({
+        type: "error",
+        text: error.message || "An unexpected error occurred"
+      });
     } finally {
       setIsLoading(false);
     }
   };
-
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-950 via-blue-950 to-red-950 font-inter text-white relative overflow-hidden p-4 sm:p-6 lg:p-8">
@@ -140,65 +143,70 @@ export function User() {
 
         {message && (
           <div
-            className={`p-3 rounded text-center font-medium ${
-              message.type === "error"
+            className={`p-3 rounded text-center font-medium ${message.type === "error"
                 ? "bg-red-100 text-red-700"
                 : "bg-green-100 text-green-700"
-            }`}
+              }`}
           >
             {message.text}
           </div>
         )}
 
-        <form onSubmit={handleSignup} className="space-y-4">
+        <form onSubmit={handleSubmit(handleSignup)} className="space-y-4">
           <div>
             <label
-              htmlFor=" firstname"
+              htmlFor="firstName"
               className="block text-sm font-medium text-white/80 mb-1"
             >
               First Name <span className="text-red-500">*</span>
             </label>
             <input
               type="text"
-              placeholder=" firstName"
-              value={first_name}
-              onChange={(e) => setfirst_name(e.target.value)}
-              required
+              placeholder="First Name"
+              {...register("firstName")}
               className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg shadow-inner text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
             />
+            {errors.firstName && (
+              <p className="mt-1 text-red-400 text-sm">{errors.firstName.message}</p>
+            )}
           </div>
+
           <div>
             <label
-              htmlFor=" first_name"
+              htmlFor="lastName"
               className="block text-sm font-medium text-white/80 mb-1"
             >
-               Last_name <span className="text-red-500">*</span>
+              Last Name <span className="text-red-500">*</span>
             </label>
             <input
               type="text"
-              placeholder=" lastName"
-              value={last_name}
-              onChange={(e) => setlast_name(e.target.value)}
-              required
+              placeholder="Last Name"
+              {...register("lastName")}
               className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg shadow-inner text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
             />
+            {errors.lastName && (
+              <p className="mt-1 text-red-400 text-sm">{errors.lastName.message}</p>
+            )}
           </div>
+
           <div>
             <label
               htmlFor="email"
               className="block text-sm font-medium text-white/80 mb-1"
             >
-              email <span className="text-red-500">*</span>
+              Email <span className="text-red-500">*</span>
             </label>
             <input
               type="email"
               placeholder="Email"
-              value={email}
-              onChange={(e) => setemail(e.target.value)}
-              required
+              {...register("email")}
               className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg shadow-inner text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
             />
+            {errors.email && (
+              <p className="mt-1 text-red-400 text-sm">{errors.email.message}</p>
+            )}
           </div>
+
           <div>
             <label
               htmlFor="password"
@@ -209,16 +217,17 @@ export function User() {
             <input
               type="password"
               placeholder="Password"
-              value={password}
-              onChange={(e) => setpassword(e.target.value)}
-              required
+              {...register("password")}
               className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg shadow-inner text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
             />
+            {errors.password && (
+              <p className="mt-1 text-red-400 text-sm">{errors.password.message}</p>
+            )}
           </div>
 
           <div>
             <label
-              htmlFor="phone number"
+              htmlFor="phoneNumber"
               className="block text-sm font-medium text-white/80 mb-1"
             >
               Phone Number <span className="text-red-500">*</span>
@@ -226,11 +235,12 @@ export function User() {
             <input
               type="text"
               placeholder="Phone Number"
-              value={phone_number}
-              onChange={(e) => setphone_number(e.target.value)}
-              required
+              {...register("phoneNumber")}
               className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg shadow-inner text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
             />
+            {errors.phoneNumber && (
+              <p className="mt-1 text-red-400 text-sm">{errors.phoneNumber.message}</p>
+            )}
           </div>
 
           <button
@@ -241,8 +251,9 @@ export function User() {
             {isLoading ? 'Signing Up...' : 'Sign Up'}
           </button>
         </form>
+
         <p className="text-center text-sm text-gray-500 mt-6">
-          if you already have an existing account?{" "}
+          Already have an account?{" "}
           <Link
             to={"/Login"}
             className="text-green-600 font-medium hover:underline"

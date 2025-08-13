@@ -1,48 +1,105 @@
-import { useState } from "react";
+import { useState } from "react"; import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
 import { useAuth } from "../components/AuthContext";
 import { Link, useNavigate } from "react-router-dom";
 import { BASE_URL } from "../../utils";
 
+// Define Zod schema for login validation
+const loginSchema = z.object({
+  email: z.email("Invalid email address"),
+  password: z.string().min(1, "Password is required")
+});
 
 export function Login() {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  const navigate = useNavigate();
+  const { login } = useAuth(); // Use login function from AuthContext
   const [message, setMessage] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
-  const { setUser } = useAuth();
-  const navigate = useNavigate();
 
-  const handleLogin = async (e) => {
-    e.preventDefault();
+  // Initialize react-hook-form
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+    reset
+  } = useForm({
+    resolver: zodResolver(loginSchema),
+    defaultValues: {
+      email: "",
+      password: ""
+    }
+  });
+
+  const handleLogin = async (formData) => {
     setMessage(null);
     setIsLoading(true);
 
     try {
-
       const res = await fetch(`${BASE_URL}/login`, {
-
         method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Accept": "application/json"
+        },
         credentials: 'include',
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({
+          email: formData.email.trim().toLowerCase(),
+          password: formData.password
+        }),
       });
 
-      const data = await res.json();
-
-      if (res.ok) {
-        localStorage.setItem("access_token", data.access_token);
-        localStorage.setItem("user", JSON.stringify(data.user));
-
-        setUser(data.user); // update AuthContext
-        setMessage({ type: "success", text: "Login successful! Redirecting..." });
-        setTimeout(() => {
-          navigate("/home");
-        }, 2000);
-      } else {
-        setMessage({ type: "error", text: data.message || "Login failed" });
+      // Check response content type
+      const contentType = res.headers.get('content-type');
+      if (!contentType?.includes('application/json')) {
+        const text = await res.text();
+        throw new Error(`Server error: ${text.slice(0, 100)}`);
       }
+
+      const responseData = await res.json();
+
+      // Handle API errors
+      if (!res.ok || !responseData.success) {
+        const errorMsg = responseData.message || `Login failed (${res.status})`;
+        throw new Error(errorMsg);
+      }
+
+      // Extract data from response
+      const { user: userData, access_token, refresh_token } = responseData.data;
+
+      // Update auth context
+      if (login) {
+        login({
+          id: userData.id,
+          email: userData.email,
+          name: userData.name || `${userData.first_name} ${userData.last_name}`,
+          role: userData.role
+        });
+      }
+
+      // Store tokens and user data
+      localStorage.setItem('access_token', access_token);
+      localStorage.setItem('refresh_token', refresh_token);
+      localStorage.setItem('user_id', userData.id);
+      localStorage.setItem('user_role', userData.role);
+      localStorage.setItem('user_name', userData.name || `${userData.first_name} ${userData.last_name}`);
+      localStorage.setItem('user_email', userData.email);
+
+      // Show success message
+      setMessage({
+        type: "success",
+        text: responseData.message || "Login successful! Redirecting..."
+      });
+
+      reset(); // Reset form fields
+      setTimeout(() => navigate("/home"), 1500);
+
     } catch (error) {
-      setMessage({ type: "error", text: error.message || "Network error" });
+      console.error("Login Error:", error);
+      setMessage({
+        type: "error",
+        text: error.message || "An unexpected error occurred"
+      });
     } finally {
       setIsLoading(false);
     }
@@ -63,15 +120,15 @@ export function Login() {
         {message && (
           <div
             className={`p-3 rounded-lg text-center font-medium border ${message.type === "error"
-                ? "bg-red-500/10 text-red-300 border-red-500/30"
-                : "bg-green-500/10 text-green-300 border-green-500/30"
+              ? "bg-red-500/10 text-red-300 border-red-500/30"
+              : "bg-green-500/10 text-green-300 border-green-500/30"
               } backdrop-blur-sm shadow-md`}
           >
             {message.text}
           </div>
         )}
 
-        <form onSubmit={handleLogin} className="space-y-4">
+        <form onSubmit={handleSubmit(handleLogin)} className="space-y-4">
           <div>
             <label
               htmlFor="email"
@@ -82,12 +139,14 @@ export function Login() {
             <input
               type="email"
               placeholder="Email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
+              {...register("email")}
               className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg shadow-inner text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
             />
+            {errors.email && (
+              <p className="mt-1 text-red-400 text-sm">{errors.email.message}</p>
+            )}
           </div>
+
           <div>
             <label
               htmlFor="password"
@@ -98,12 +157,14 @@ export function Login() {
             <input
               type="password"
               placeholder="Password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
+              {...register("password")}
               className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg shadow-inner text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
             />
+            {errors.password && (
+              <p className="mt-1 text-red-400 text-sm">{errors.password.message}</p>
+            )}
           </div>
+
           <button
             type="submit"
             disabled={isLoading}
@@ -127,4 +188,3 @@ export function Login() {
     </div>
   );
 }
-
