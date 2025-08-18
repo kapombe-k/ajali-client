@@ -5,7 +5,7 @@ import { useAuth } from "../components/AuthContext";
 import { Link, useNavigate } from "react-router-dom";
 import { BASE_URL } from "../../utils";
 
-// Define Zod schema for login validation
+// Zod schema for login
 const loginSchema = z.object({
   email: z.email("Invalid email address"),
   password: z.string().min(1, "Password is required")
@@ -92,7 +92,12 @@ export function Login() {
       });
 
       reset(); // Reset form fields
-      setTimeout(() => navigate("/home"), 1500);
+      
+      // Redirect based on user role
+      const dashboardPath = userData.role === 'admin'
+        ? '/admin-dashboard'
+        : '/user-dashboard';
+      setTimeout(() => navigate(dashboardPath), 1500);
 
     } catch (error) {
       console.error("Login Error:", error);

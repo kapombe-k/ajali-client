@@ -1,13 +1,15 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { BASE_URL } from "../../utils";
+import { useAuth } from "../components/AuthContext"; // Import useAuth hook
 
-export default function UserDashboard({ id }) {
+export default function UserDashboard() {
     const [reports, setReports] = useState([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
     const navigate = useNavigate();
-    //const access_token = localStorage.getItem("access_token");
+    const { user } = useAuth(); // Get user from AuthContext
+    const userId = user?.id; // Extract user ID
 
     const makeReport = () => {
         navigate('/map');
@@ -22,7 +24,8 @@ export default function UserDashboard({ id }) {
             const response = await fetch(`${BASE_URL}/reports/${reportId}`, {
                 method: "DELETE",
                 // headers: {
-                //     Authorization: `Bearer ${access_token}`,
+                //     Authorization: `Bearer ${user?.access_token}`,
+                //     "Content-Type": "application/json",
                 // },
             });
 
@@ -39,12 +42,13 @@ export default function UserDashboard({ id }) {
 
     const fetchReports = async () => {
         //if (!access_token) return;
+        if (!userId) return; // Don't fetch if user ID is not available
         setLoading(true);
         try {
-            const response = await fetch(`${BASE_URL}/${id}/reports`, {
+            const response = await fetch(`${BASE_URL}/${userId}/reports`, {
                 method: "GET",
                 // headers: {
-                //     Authorization: `Bearer ${access_token}`,
+                //     Authorization: `Bearer ${user?.access_token}`,
                 //     "Content-Type": "application/json",
                 // },
             });
@@ -64,7 +68,7 @@ export default function UserDashboard({ id }) {
 
     useEffect(() => {
         fetchReports();
-    }, []);
+    }, [userId]); // Add userId as dependency
 
     // if (!access_token) {
     //     return <p>Please log in to view reports</p>;
