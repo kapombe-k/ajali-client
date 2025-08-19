@@ -17,7 +17,7 @@ L.Icon.Default.mergeOptions({
 export default function MapPage() {
     // this instantiates the map initial state for reference as a mutable variable
     const mapRef = useRef();
-    const navigate = useNavigate
+    const navigate = useNavigate()
     const [position, setPosition] = useState(null);
     const [locationSelected, setLocationSelected] = useState(false);
     const [isLocating, setIsLocating] = useState(false);
@@ -111,7 +111,7 @@ export default function MapPage() {
                             <h1 className="text-2xl font-extrabold text-blue-300 drop-shadow-lg">Select emergency location</h1>
                             {/* Find My Location Button - Glassy and interactive */}
                             <button
-                                onClick={handleLocate}
+                                onClick={handleButtonClick}
                                 disabled={isLocating}
                                 title="Find my location"
                                 className={`relative bg-blue-700 hover:bg-blue-800 text-white font-bold py-2 px-4 rounded-lg text-sm shadow-lg transition-all duration-300 flex items-center gap-2
