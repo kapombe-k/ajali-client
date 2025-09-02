@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import axios from "axios";
 import { useSearchParams } from "react-router-dom";
 import { BASE_URL } from "../../utils";
+import { UpdateReportStatus } from "./status_update";
 
 export default function ReportForm({ locationData, setLocationData }) {
   const [searchParams] = useSearchParams();
