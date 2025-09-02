@@ -9,15 +9,16 @@ export const AuthProvider = ({ children }) => {
   // Check if user is authenticated on app load
   useEffect(() => {
     const checkAuthStatus = () => {
-      const storedUser = localStorage.getItem('user');
-      if (storedUser) {
-        try {
-          const userData = JSON.parse(storedUser);
-          setUser(userData);
-        } catch (error) {
-          console.error("Error parsing user data:", error);
-          localStorage.removeItem('user');
-        }
+      const userId = localStorage.getItem('user_id');
+      const accessToken = localStorage.getItem('access_token');
+      if (userId && accessToken) {
+        const userData = {
+          id: userId,
+          email: localStorage.getItem('user_email'),
+          name: localStorage.getItem('user_name'),
+          role: localStorage.getItem('user_role')
+        };
+        setUser(userData);
       }
       setLoading(false);
     };

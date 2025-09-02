@@ -84,8 +84,8 @@ export default function ReportForm({ locationData, setLocationData }) {
         user_id: user_id,
         incident: formData.incident,
         details: formData.details,
-        latitude: locationData.latitude,
-        longitude: locationData.longitude,
+        latitude: parseFloat(locationData.latitude) || 0.0,
+        longitude: parseFloat(locationData.longitude) || 0.0,
       }, {
         headers: {
           'Content-Type': 'application/json',

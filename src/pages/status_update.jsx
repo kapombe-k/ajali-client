@@ -1,8 +1,6 @@
 import { useForm } from "react-hook-form";
-import { ToastContainer } from "react-toastify";
+import { toast } from "react-toastify";
 import { BASE_URL } from "../../utils";
-//import { StatusUpdate } from "../components/StatusUpdate";""
-// import "react-toastify/dist/ReactToastify.css"; // Import once in App.jsx
 
 export function UpdateReportStatus({ reportId, access_token, reportDetails }) {
   const {
@@ -17,7 +15,7 @@ export function UpdateReportStatus({ reportId, access_token, reportDetails }) {
   const onSubmit = async (data) => {
     try {
       const response = await fetch(
-        `${BASE_URL}/admin/reports/${reportId}/status`,
+        `${BASE_URL}/reports/${reportId}/status`,
         {
           method: "POST",
           headers: {
@@ -25,9 +23,7 @@ export function UpdateReportStatus({ reportId, access_token, reportDetails }) {
             Authorization: `Bearer ${access_token}`,
           },
           body: JSON.stringify({
-            updated_by: "", 
             status: data.status
-           
           }),
         }
       );
@@ -35,15 +31,15 @@ export function UpdateReportStatus({ reportId, access_token, reportDetails }) {
       const result = await response.json();
 
       if (response.ok) {
-        StatusUpdate.success(
+        toast.success(
           result.message || "✅ Status updated successfully"
         );
         reset();
       } else {
-        StatusUpdate.error(result.error || "❌ Failed to update status");
+        toast.error(result.message || "❌ Failed to update status");
       }
     } catch (error) {
-      StatusUpdate.error("🌐 Network error: " + error.message);
+      toast.error("🌐 Network error: " + error.message);
     }
   };
 
