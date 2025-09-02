@@ -13,7 +13,7 @@ const signUpSchema = z.object({
   email: z.email("Invalid email address"),
   password: z.string()
     .min(8, "Password must be at least 8 characters")
-    .regex(/\d/, "Password must contain at least one number")
+    .regex(/\d/, "Password must contain at least one digit")
     .regex(/[A-Z]/, "Password must contain at least one uppercase letter"),
   phoneNumber: z.string()
     .min(10, "Phone number must be at least 10 digits")
@@ -64,7 +64,6 @@ export function User() {
           'Content-Type': 'application/json',
           'Accept': 'application/json'
         },
-        credentials: 'include',
         body: JSON.stringify(payload)
       });
 
@@ -78,7 +77,7 @@ export function User() {
       const responseData = await res.json();
 
       // Handle API errors
-      if (!res.ok || !responseData.success) {
+      if (!res.ok || !responseData.Success) {
         const errorMsg = responseData.message || `Signup failed (${res.status})`;
         throw new Error(errorMsg);
       }

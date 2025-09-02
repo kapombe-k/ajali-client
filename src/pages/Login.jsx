@@ -59,7 +59,7 @@ export function Login() {
       const responseData = await res.json();
 
       // Handle API errors
-      if (!res.ok || !responseData.success) {
+      if (!res.ok || !responseData.Success) {
         const errorMsg = responseData.message || `Login failed (${res.status})`;
         throw new Error(errorMsg);
       }
