@@ -72,21 +72,22 @@ export default function ReportForm({ locationData, setLocationData }) {
       
       if (!user_id || !access_token) throw new Error('Please log in to submit a report.');
 
-      // Debug: Log what we're sending
-      console.log("Creating report with:", {
-        user_id,
-        ...formData,
-        ...locationData
-      });
-
-      // Step 1: Create report
-      const reportResponse = await axios.post(`${BASE_URL}/reports`, {
+      // Prepare the data to send
+      const reportData = {
         user_id: user_id,
         incident: formData.incident,
         details: formData.details,
         latitude: parseFloat(locationData.latitude) || 0.0,
         longitude: parseFloat(locationData.longitude) || 0.0,
-      }, {
+      };
+
+      // Debug: Log what we're sending
+      console.log("Creating report with:", reportData);
+      console.log("Location data:", locationData);
+      console.log("Form data:", formData);
+
+      // Step 1: Create report
+      const reportResponse = await axios.post(`${BASE_URL}/reports`, reportData, {
         headers: {
           'Content-Type': 'application/json',
            Authorization: `Bearer ${access_token}`,
@@ -137,9 +138,18 @@ export default function ReportForm({ locationData, setLocationData }) {
       console.error("Submission error:", {
         message: error.message,
         response: error.response?.data,
+        status: error.response?.status,
+        statusText: error.response?.statusText,
         config: error.config
       });
-      // User feedback here (e.g., toast notification)
+
+      // Show user-friendly error message
+      const errorMessage = error.response?.data?.message ||
+                          error.response?.data?.error ||
+                          error.message ||
+                          "Failed to submit report";
+
+      alert(`Error: ${errorMessage}`);
     } finally {
       setIsSubmitting(false);
     }
