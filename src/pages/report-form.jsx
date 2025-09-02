@@ -1,15 +1,15 @@
 import { useState, useRef, useEffect } from "react";
 import axios from "axios";
-import { useSearchParams } from "react-router-dom";
+import { useSearchParams, useNavigate } from "react-router-dom";
 import { BASE_URL } from "../../utils";
-import { UpdateReportStatus } from "./status_update";
 
 export default function ReportForm({ locationData, setLocationData }) {
-  const [searchParams] = useSearchParams();
-  const [formData, setFormData] = useState({
-    incident: "",
-    details: "",
-  });
+   const [searchParams] = useSearchParams();
+   const navigate = useNavigate();
+   const [formData, setFormData] = useState({
+     incident: "",
+     details: "",
+   });
   const [mediaFiles, setMediaFiles] = useState([]);
   const [reportId, setReportId] = useState(null);
   const [submittedReport, setSubmittedReport] = useState(null);
@@ -132,8 +132,13 @@ export default function ReportForm({ locationData, setLocationData }) {
       setLocationData({ latitude: "", longitude: "" });
       if (fileInputRef.current) fileInputRef.current.value = "";
 
-      setSubmittedReport(report);
-      setReportId(report.id);
+      // Redirect to appropriate dashboard based on user role
+      const userRole = localStorage.getItem('user_role');
+      const dashboardPath = userRole === 'admin' ? '/admin-dashboard' : '/user-dashboard';
+
+      // Show success message and redirect
+      alert('Report submitted successfully!');
+      navigate(dashboardPath);
 
     } catch (error) {
       console.error("Submission error:", {
@@ -342,13 +347,6 @@ export default function ReportForm({ locationData, setLocationData }) {
         </form>
       </div>
 
-      {reportId && (
-        <UpdateReportStatus
-          reportId={reportId}
-          access_token={localStorage.getItem("access_token")}
-          reportDetails={submittedReport}
-        />
-      )}
     </div>
   );
 }

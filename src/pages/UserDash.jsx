@@ -41,16 +41,16 @@ export default function UserDashboard() {
     };
 
     const fetchReports = async () => {
-        //if (!access_token) return;
         if (!userId) return; // Don't fetch if user ID is not available
         setLoading(true);
         try {
-            const response = await fetch(`${BASE_URL}/${userId}/reports`, {
+            const access_token = localStorage.getItem('access_token');
+            const response = await fetch(`${BASE_URL}/users/${userId}/reports`, {
                 method: "GET",
-                // headers: {
-                //     Authorization: `Bearer ${user?.access_token}`,
-                //     "Content-Type": "application/json",
-                // },
+                headers: {
+                    Authorization: `Bearer ${access_token}`,
+                    "Content-Type": "application/json",
+                },
             });
 
             if (!response.ok) {
@@ -128,7 +128,7 @@ export default function UserDashboard() {
                                     <div className="p-6">
                                         <div className="flex justify-between items-start mb-4">
                                             <h3 className="text-lg font-semibold text-white truncate">
-                                                {report.title || "Untitled Report"}
+                                                {report.incident || "Untitled Report"}
                                             </h3>
                                             <span className="bg-gray-700 rounded-lg px-2 py-1 text-xs border border-gray-600">
                                                 ID: {(report.id || "").slice(0, 6)}
@@ -136,20 +136,20 @@ export default function UserDashboard() {
                                         </div>
 
                                         <div className="flex items-center gap-2 mb-3">
-                                            <span className={`px-2 py-1 rounded-full text-xs font-bold ${report.status === "Pending" ? "bg-yellow-500/20 text-yellow-300" :
-                                                    report.status === "In Progress" ? "bg-blue-500/20 text-blue-300" :
-                                                        report.status === "Resolved" ? "bg-green-500/20 text-green-300" :
-                                                            "bg-red-500/20 text-red-300"
+                                            <span className={`px-2 py-1 rounded-full text-xs font-bold ${report.status === "under investigation" ? "bg-blue-500/20 text-blue-300" :
+                                                    report.status === "rejected" ? "bg-red-500/20 text-red-300" :
+                                                        report.status === "resolved" || report.status === "completed" ? "bg-green-500/20 text-green-300" :
+                                                            "bg-gray-500/20 text-gray-300"
                                                 }`}>
                                                 {report.status || "Unknown"}
                                             </span>
                                             <span className="text-gray-400 text-sm">
-                                                {new Date(report.createdAt).toLocaleDateString()}
+                                                {new Date(report.created_at).toLocaleDateString()}
                                             </span>
                                         </div>
 
                                         <p className="text-gray-300 text-sm mb-6 line-clamp-3">
-                                            {report.description || "No description provided"}
+                                            {report.details || "No details provided"}
                                         </p>
 
                                         <div className="flex gap-3">

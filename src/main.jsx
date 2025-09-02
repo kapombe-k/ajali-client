@@ -65,8 +65,12 @@ const router = createBrowserRouter([
         ),
       },
       {
-        path: "/details-page",
-        element: <ReportDetailPage />
+        path: "/reports/:id",
+        element: (
+          <MainLayout>
+            <ReportDetailPage />
+          </MainLayout>
+        )
       },
       {
         path: "/UpdateReportStatus",
