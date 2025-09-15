@@ -17,52 +17,111 @@ L.Icon.Default.mergeOptions({
 export default function MapPage() {
     // this instantiates the map initial state for reference as a mutable variable
     const mapRef = useRef();
-    const navigate = useNavigate
+    const navigate = useNavigate()
     const [position, setPosition] = useState(null);
     const [locationSelected, setLocationSelected] = useState(false);
     const [isLocating, setIsLocating] = useState(false);
     const [locationError, setLocationError] = useState(null);
     const [locationData, setLocationData] = useState({latitude:'', longitude:'',})
+    const [mapReady, setMapReady] = useState(false);
 
 
     //we need to create a function to trigger location finding
     const handleLocate = () => {
+        console.log('Starting location detection...');
         setIsLocating(true);
         setLocationError(null);
-        //this triggers map.locate() in location marker when mounted
-        if (navigator.geolocation) {
-            navigator.geolocation.getCurrentPosition(
-                (position) => {
-                    const latitude = position.coords.latitude;
-                    const longitude = position.coords.longitude;
-                    setPosition({ lat: latitude, lng: longitude });
-                    setIsLocating(false);
-                },
-                (err) => {
-                    setError("❌ Failed to get location. Please allow location access.");
-                    setLoading(false);
-                }
-            );
-        } else {
-            setLocationError("Location not found, please allow location permissions");
+
+        if (!navigator.geolocation) {
+            setLocationError("Geolocation is not supported by this browser");
             setIsLocating(false);
+            return;
         }
+
+        const options = {
+            enableHighAccuracy: true,
+            timeout: 10000,
+            maximumAge: 300000 // 5 minutes
+        };
+
+        navigator.geolocation.getCurrentPosition(
+            (position) => {
+                console.log('Geolocation success:', position.coords);
+                const latitude = position.coords.latitude;
+                const longitude = position.coords.longitude;
+
+                if (latitude < -90 || latitude > 90 || longitude < -180 || longitude > 180) {
+                    setLocationError("Invalid coordinates received from geolocation");
+                    setIsLocating(false);
+                    return;
+                }
+
+                const newPos = { lat: latitude, lng: longitude };
+                setPosition(newPos);
+                setLocationData({
+                    latitude: latitude.toString(),
+                    longitude: longitude.toString(),
+                });
+                setLocationSelected(true);
+                setIsLocating(false);
+                console.log('Location set successfully:', newPos);
+            },
+            (err) => {
+                console.error('Geolocation error:', err);
+                let errorMessage = "Failed to get location. ";
+                switch(err.code) {
+                    case err.PERMISSION_DENIED:
+                        errorMessage += "Please allow location access in your browser.";
+                        break;
+                    case err.POSITION_UNAVAILABLE:
+                        errorMessage += "Location information is unavailable.";
+                        break;
+                    case err.TIMEOUT:
+                        errorMessage += "Location request timed out.";
+                        break;
+                    default:
+                        errorMessage += "An unknown error occurred.";
+                        break;
+                }
+                setLocationError(errorMessage);
+                setIsLocating(false);
+            },
+            options
+        );
     };
 
     const handleLocationFound = (e) => {
         try {
-            const latLng = e.latLng || e.latlng;
+            // Handle different event structures consistently
+            let latLng;
+            if (e.latlng) {
+                latLng = e.latlng; // From DetectClick
+            } else if (e.latLng) {
+                latLng = e.latLng; // From LocationEvents
+            } else if (e.lat && e.lng) {
+                latLng = e; // Direct coordinates
+            }
+
             if (!latLng || typeof latLng.lat !== 'number' || typeof latLng.lng !== 'number') {
                 console.error('Invalid location data!', latLng);
                 setLocationError('Coordinates received are invalid');
                 return;
             }
-            //create a position object
+
+            // Validate coordinate ranges
+            if (latLng.lat < -90 || latLng.lat > 90 || latLng.lng < -180 || latLng.lng > 180) {
+                console.error('Coordinates out of valid range:', latLng);
+                setLocationError('Coordinates are outside valid range');
+                return;
+            }
+
+            // Create a position object
             const newPosition = {
                 lat: latLng.lat,
                 lng: latLng.lng
             };
-            //update state from here
+
+            // Update state
             setPosition(newPosition);
             setLocationData({
                 latitude: newPosition.lat.toString(),
@@ -70,19 +129,56 @@ export default function MapPage() {
             });
             setLocationSelected(true);
             setIsLocating(false);
+            setLocationError(null); // Clear any previous errors
 
-            //correction, flyto uses array format for coords
-            if (mapRef.current && mapRef.current.flyTo && typeof mapRef.current.flyTo === 'function') {
-                //coordinates as an array
-                mapRef.current.flyTo([newPosition.lat, newPosition.lng], 16);                
+            // Fly to location with better error handling
+            const flyToLocation = () => {
+                if (mapRef.current && typeof mapRef.current.flyTo === 'function') {
+                    try {
+                        mapRef.current.flyTo([newPosition.lat, newPosition.lng], 16);
+                        console.log('Successfully flew to location:', newPosition);
+                    } catch (mapError) {
+                        console.warn('Map flyTo failed:', mapError);
+                        // Try alternative method
+                        if (typeof mapRef.current.setView === 'function') {
+                            try {
+                                mapRef.current.setView([newPosition.lat, newPosition.lng], 16);
+                                console.log('Used setView as fallback');
+                            } catch (setViewError) {
+                                console.error('Both flyTo and setView failed:', setViewError);
+                            }
+                        }
+                    }
+                } else {
+                    console.warn('Map reference not available for flyTo');
+                }
+            };
+
+            if (mapReady) {
+                flyToLocation();
             } else {
-                console.warn('Map reference not available');
+                // Wait for map to be ready
+                const checkMapReady = setInterval(() => {
+                    if (mapReady && mapRef.current) {
+                        clearInterval(checkMapReady);
+                        flyToLocation();
+                    }
+                }, 100);
+
+                // Timeout after 5 seconds
+                setTimeout(() => {
+                    clearInterval(checkMapReady);
+                    if (!mapReady) {
+                        console.warn('Map failed to initialize within timeout');
+                    }
+                }, 5000);
             }
+
         } catch (error) {
             console.error('Error in handleLocationFound:', error);
             setLocationError('Failed to process location data');
+            setIsLocating(false);
         }
-        
     };
 
     const handleButtonClick = () => {
@@ -111,7 +207,7 @@ export default function MapPage() {
                             <h1 className="text-2xl font-extrabold text-blue-300 drop-shadow-lg">Select emergency location</h1>
                             {/* Find My Location Button - Glassy and interactive */}
                             <button
-                                onClick={handleLocate}
+                                onClick={handleButtonClick}
                                 disabled={isLocating}
                                 title="Find my location"
                                 className={`relative bg-blue-700 hover:bg-blue-800 text-white font-bold py-2 px-4 rounded-lg text-sm shadow-lg transition-all duration-300 flex items-center gap-2
@@ -138,7 +234,15 @@ export default function MapPage() {
                                 center={position || [0, 0]} // Default to 0,0 if no position, LocationMarker will try to find user's
                                 zoom={2} // Start with a lower zoom to show more of the world
                                 // Fill parent card
-                                whenCreated={(map) => (mapRef.current = map)}
+                                whenCreated={(map) => {
+                                    mapRef.current = map;
+                                    setMapReady(true);
+                                    console.log('Map created and ready');
+                                }}
+                                whenReady={() => {
+                                    setMapReady(true);
+                                    console.log('Map is ready');
+                                }}
                                 className="z-0 flex flex-auto rounded-lg overflow-hidden min-h-[500px] w-full md:w-2/3 lg:w-3/4" // Added rounded-lg to map itself
                             >
                                 <TileLayer
@@ -218,20 +322,26 @@ function LocationEvents({onLocationFound, onLocationError }) {
     
     const map = useMapEvents({
         locationfound(e) {
+            console.log('Location found event:', e);
             onLocationFound(e)
         },
-        //add error handlingn in case map load fails 
+        //add error handlingn in case map load fails
         locationerror(e) {
-            console.error('location error:', e.message);
-            alert('Could not find your location. Ensure device location is on')
+            console.error('Location error event:', e);
+            if (onLocationError) {
+                onLocationError(e);
+            } else {
+                alert('Could not find your location. Ensure device location is on')
+            }
         },
         click(e) {
+            console.log('Map click event:', e);
             onLocationFound({
-                latlng: e.latLng,
+                latlng: e.latlng, // Use lowercase to match DetectClick
                 bounds: e.bounds
             });
         },
-    }); 
+    });
 
     return null;
     
@@ -240,6 +350,7 @@ function LocationEvents({onLocationFound, onLocationError }) {
 function DetectClick({ onLocationClick }) {
     useMapEvents({
         click: (e) => {
+            console.log('DetectClick event:', e);
             onLocationClick({
                 latlng: e.latlng,
                 bounds: e.bounds

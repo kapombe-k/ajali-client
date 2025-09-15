@@ -1,14 +1,15 @@
 import { useState, useRef, useEffect } from "react";
 import axios from "axios";
-import { useSearchParams } from "react-router-dom";
+import { useSearchParams, useNavigate } from "react-router-dom";
 import { BASE_URL } from "../../utils";
 
 export default function ReportForm({ locationData, setLocationData }) {
-  const [searchParams] = useSearchParams();
-  const [formData, setFormData] = useState({
-    incident: "",
-    details: "",
-  });
+   const [searchParams] = useSearchParams();
+   const navigate = useNavigate();
+   const [formData, setFormData] = useState({
+     incident: "",
+     details: "",
+   });
   const [mediaFiles, setMediaFiles] = useState([]);
   const [reportId, setReportId] = useState(null);
   const [submittedReport, setSubmittedReport] = useState(null);
@@ -72,21 +73,22 @@ export default function ReportForm({ locationData, setLocationData }) {
       
       if (!user_id || !access_token) throw new Error('Please log in to submit a report.');
 
-      // Debug: Log what we're sending
-      console.log("Creating report with:", {
-        user_id,
-        ...formData,
-        ...locationData
-      });
-
-      // Step 1: Create report
-      const reportResponse = await axios.post(`${BASE_URL}/reports`, {
+      // Prepare the data to send
+      const reportData = {
         user_id: user_id,
         incident: formData.incident,
         details: formData.details,
-        latitude: locationData.latitude,
-        longitude: locationData.longitude,
-      }, {
+        latitude: parseFloat(locationData.latitude) || 0.0,
+        longitude: parseFloat(locationData.longitude) || 0.0,
+      };
+
+      // Debug: Log what we're sending
+      console.log("Creating report with:", reportData);
+      console.log("Location data:", locationData);
+      console.log("Form data:", formData);
+
+      // Step 1: Create report
+      const reportResponse = await axios.post(`${BASE_URL}/reports`, reportData, {
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${access_token}`,
@@ -130,16 +132,30 @@ export default function ReportForm({ locationData, setLocationData }) {
       setLocationData({ latitude: "", longitude: "" });
       if (fileInputRef.current) fileInputRef.current.value = "";
 
-      setSubmittedReport(report);
-      setReportId(report.id);
+      // Redirect to appropriate dashboard based on user role
+      const userRole = localStorage.getItem('user_role');
+      const dashboardPath = userRole === 'admin' ? '/admin-dashboard' : '/user-dashboard';
+
+      // Show success message and redirect
+      alert('Report submitted successfully!');
+      navigate(dashboardPath);
 
     } catch (error) {
       console.error("Submission error:", {
         message: error.message,
         response: error.response?.data,
+        status: error.response?.status,
+        statusText: error.response?.statusText,
         config: error.config
       });
-      // User feedback here (e.g., toast notification)
+
+      // Show user-friendly error message
+      const errorMessage = error.response?.data?.message ||
+                          error.response?.data?.error ||
+                          error.message ||
+                          "Failed to submit report";
+
+      alert(`Error: ${errorMessage}`);
     } finally {
       setIsSubmitting(false);
     }
@@ -331,13 +347,6 @@ export default function ReportForm({ locationData, setLocationData }) {
         </form>
       </div>
 
-      {reportId && (
-        <UpdateReportStatus
-          reportId={reportId}
-          access_token={localStorage.getItem("access_token")}
-          reportDetails={submittedReport}
-        />
-      )}
     </div>
   );
 }

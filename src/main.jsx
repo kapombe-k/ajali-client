@@ -37,7 +37,7 @@ const router = createBrowserRouter([
     element: <ProtectedRoute />, // This is the protected route parent
     children: [
       {
-        path: "/AdminDashboard",
+        path: "/admin-dashboard",
         element: (
           <MainLayout>
             <AdminDashboard />
@@ -65,8 +65,12 @@ const router = createBrowserRouter([
         ),
       },
       {
-        path: "/details-page",
-        element: <ReportDetailPage />
+        path: "/reports/:id",
+        element: (
+          <MainLayout>
+            <ReportDetailPage />
+          </MainLayout>
+        )
       },
       {
         path: "/UpdateReportStatus",

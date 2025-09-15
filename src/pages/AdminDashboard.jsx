@@ -3,13 +3,13 @@ import axios from "axios";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { BASE_URL } from '../../utils';
+import { useNavigate } from "react-router-dom";
 
 export default function AdminDashboard() {
   const [reports, setReports] = useState([]);
-  const [selectedReportId, setSelectedReportId] = useState(null);
-  const [newStatus, setNewStatus] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const navigate = useNavigate();
 
   // Fetch reports
   useEffect(() => {
@@ -32,30 +32,9 @@ export default function AdminDashboard() {
       });
   }, []);
 
-  // Update status
-  const handleStatusUpdate = async (e) => {
-    e.preventDefault();
-    if (!selectedReportId || !newStatus) return;
-
-    try {
-      await axios.patch(
-        `${BASE_URL}/admin/reports/${selectedReportId}/status`,
-        { status: newStatus }
-      );
-
-      setReports((prev) =>
-        prev.map((r) =>
-          r.id === selectedReportId ? { ...r, status: newStatus } : r
-        )
-      );
-      toast.success("Status updated successfully!");
-      setSelectedReportId(null);
-      setNewStatus("");
-    } catch (err) {
-      const msg = err.response?.data?.message || err.message;
-      setError("Failed to update status. " + msg);
-      toast.error("Failed to update status: " + msg);
-    }
+  // View report details
+  const viewReportDetails = (reportId) => {
+    navigate(`/reports/${reportId}`);
   };
 
   if (loading) return (
@@ -87,118 +66,52 @@ export default function AdminDashboard() {
             <p className="text-gray-400">There are currently no incident reports to display</p>
           </div>
         ) : (
-          <div className="bg-white/5 backdrop-blur-xl rounded-2xl border border-white/10 shadow-2xl overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-white/10">
-                <thead className="bg-white/5">
-                  <tr>
-                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-blue-300 uppercase tracking-wider">
-                      ID
-                    </th>
-                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-blue-300 uppercase tracking-wider">
-                      Incident
-                    </th>
-                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-blue-300 uppercase tracking-wider">
-                      Details
-                    </th>
-                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-blue-300 uppercase tracking-wider">
-                      Location
-                    </th>
-                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-blue-300 uppercase tracking-wider">
-                      Status
-                    </th>
-                    <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-blue-300 uppercase tracking-wider">
-                      Actions
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-white/10">
-                  {reports.map((report) => (
-                    <tr key={report.id} className="hover:bg-white/5 transition-colors">
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-mono text-gray-300">
-                        {report.id}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-white">
-                        {report.incident}
-                      </td>
-                      <td className="px-6 py-4 text-sm text-gray-300 max-w-xs truncate">
-                        {report.details}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-400">
-                        {report.latitude?.toFixed(4)}, {report.longitude?.toFixed(4)}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`px-2 py-1 rounded-full text-xs font-bold ${report.status === "under investigation" ? "bg-blue-500/20 text-blue-300" :
-                            report.status === "rejected" ? "bg-red-500/20 text-red-300" :
-                              report.status === "resolved" || report.status === "completed" ? "bg-green-500/20 text-green-300" :
-                                "bg-gray-500/20 text-gray-300"
-                          }`}>
-                          {report.status || "N/A"}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                        <button
-                          onClick={() => {
-                            setSelectedReportId(report.id);
-                            setNewStatus(report.status || "");
-                          }}
-                          className="text-blue-400 hover:text-blue-300 transition-colors"
-                        >
-                          Update
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {reports.map((report) => (
+              <div key={report.id} className="bg-white/5 backdrop-blur-xl rounded-2xl border border-white/10 shadow-2xl overflow-hidden hover:border-blue-500/50 transition-all">
+                <div className="p-6">
+                  <div className="flex justify-between items-start mb-4">
+                    <h3 className="text-lg font-semibold text-white truncate">
+                      {report.incident || "Untitled Report"}
+                    </h3>
+                    <span className="bg-gray-700 rounded-lg px-2 py-1 text-xs border border-gray-600">
+                      ID: {(report.id || "").slice(0, 6)}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center gap-2 mb-3">
+                    <span className={`px-2 py-1 rounded-full text-xs font-bold ${report.status === "under investigation" ? "bg-blue-500/20 text-blue-300" :
+                        report.status === "rejected" ? "bg-red-500/20 text-red-300" :
+                          report.status === "resolved" || report.status === "completed" ? "bg-green-500/20 text-green-300" :
+                            "bg-gray-500/20 text-gray-300"
+                      }`}>
+                      {report.status || "Unknown"}
+                    </span>
+                    <span className="text-gray-400 text-sm">
+                      {new Date(report.created_at).toLocaleDateString()}
+                    </span>
+                  </div>
+
+                  <p className="text-gray-300 text-sm mb-4 line-clamp-3">
+                    {report.details || "No details provided"}
+                  </p>
+
+                  <div className="text-xs text-gray-400 mb-4">
+                    📍 {report.latitude?.toFixed(4)}, {report.longitude?.toFixed(4)}
+                  </div>
+
+                  <button
+                    onClick={() => viewReportDetails(report.id)}
+                    className="w-full bg-blue-700 hover:bg-blue-600 text-white py-2 px-4 rounded-lg transition-colors text-sm"
+                  >
+                    View Details
+                  </button>
+                </div>
+              </div>
+            ))}
           </div>
         )}
 
-        {selectedReportId && (
-          <div className="mt-8 bg-white/5 backdrop-blur-xl rounded-2xl border border-white/10 shadow-2xl p-6 max-w-2xl">
-            <h2 className="text-xl font-bold text-blue-300 mb-4">
-              Update Status for Report #{selectedReportId}
-            </h2>
-
-            <form onSubmit={handleStatusUpdate} className="space-y-4">
-              <div>
-                <label htmlFor="status" className="block text-sm font-medium text-gray-400 mb-2">
-                  New Status
-                </label>
-                <select
-                  id="status"
-                  value={newStatus}
-                  onChange={(e) => setNewStatus(e.target.value)}
-                  required
-                  className="w-full bg-gray-800/50 border border-gray-700 text-white rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                >
-                  <option value="">Select status</option>
-                  <option value="under investigation">Under Investigation</option>
-                  <option value="rejected">Rejected</option>
-                  <option value="resolved">Resolved</option>
-                  <option value="completed">Completed</option>
-                </select>
-              </div>
-
-              <div className="flex gap-3">
-                <button
-                  type="submit"
-                  className="bg-blue-700 hover:bg-blue-600 text-white py-2 px-6 rounded-lg transition-colors"
-                >
-                  Save Changes
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setSelectedReportId(null)}
-                  className="bg-gray-700 hover:bg-gray-600 text-white py-2 px-6 rounded-lg transition-colors"
-                >
-                  Cancel
-                </button>
-              </div>
-            </form>
-          </div>
-        )}
 
         <ToastContainer
           position="top-right"
