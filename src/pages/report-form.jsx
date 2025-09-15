@@ -89,7 +89,7 @@ export default function ReportForm({ locationData, setLocationData }) {
       }, {
         headers: {
           'Content-Type': 'application/json',
-           Authorization: `Bearer ${access_token}`,
+          'Authorization': `Bearer ${access_token}`,
         }
       });
 
@@ -117,7 +117,7 @@ export default function ReportForm({ locationData, setLocationData }) {
           {
             headers: {
               'Content-Type': 'multipart/form-data',
-              Authorization: `Bearer ${access_token}`,
+              'Authorization': `Bearer ${access_token}`,
             }
           }
         );

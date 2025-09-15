@@ -1,5 +1,7 @@
 import { useForm } from "react-hook-form";
 import { ToastContainer } from "react-toastify";
+import { BASE_URL } from "../../utils";
+
 //import { StatusUpdate } from "../components/StatusUpdate";""
 // import "react-toastify/dist/ReactToastify.css"; // Import once in App.jsx
 
@@ -12,7 +14,6 @@ export function UpdateReportStatus({ reportId, access_token, reportDetails }) {
   } = useForm();
 
   const statuses = ["under investigation", "rejected", "resolved"];
-  const API_BASE_URL = "http://127.0.0.1:5000";
 
   const onSubmit = async (data) => {
     try {
@@ -22,12 +23,11 @@ export function UpdateReportStatus({ reportId, access_token, reportDetails }) {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${access_token}`,
+            'Authorization': `Bearer ${access_token}`,
           },
           body: JSON.stringify({
             updated_by: "", 
-            status: data.status
-           
+            status: data.status           
           }),
         }
       );
