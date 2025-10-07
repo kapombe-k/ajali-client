@@ -12,24 +12,24 @@ export default function AdminDashboard() {
   const navigate = useNavigate();
 
   // Fetch reports
+  const fetchReports = async () => {
+    try {
+      const response = await axios.get(`${BASE_URL}/reports`);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      const data = await response.json();
+      setReports(data);
+    } catch (error) {
+      setError("Failed to fetch reports.");
+      } finally {
+      setLoading(false);
+    };
+  };
+
   useEffect(() => {
     setLoading(true);
-    fetch(`${BASE_URL}/admin/reports`, {
-      method: "GET",
-    })
-      .then((response) => {
-        if (!response.ok) throw new Error(`HTTP error: ${response.status}`);
-        return response.json();
-      })
-      .then((data) => {
-        setReports(data);
-        setLoading(false);
-      })
-      .catch((error) => {
-        setError("Failed to fetch reports. " + error.message);
-        toast.error("Failed to fetch reports: " + error.message);
-        setLoading(false);
-      });
+    fetchReports();
   }, []);
 
   // View report details

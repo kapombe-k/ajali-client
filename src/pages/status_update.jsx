@@ -20,7 +20,7 @@ export function UpdateReportStatus({ reportId, access_token, reportDetails }) {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${access_token}`,
+            'Authorization': `Bearer ${access_token}`,
           },
           body: JSON.stringify({
             status: data.status

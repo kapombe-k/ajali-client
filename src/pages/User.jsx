@@ -160,6 +160,7 @@ export function User() {
               First Name <span className="text-red-500">*</span>
             </label>
             <input
+              id="first_name"
               type="text"
               placeholder="First Name"
               {...register("firstName")}
@@ -178,6 +179,7 @@ export function User() {
               Last Name <span className="text-red-500">*</span>
             </label>
             <input
+              id="last_name"
               type="text"
               placeholder="Last Name"
               {...register("lastName")}
@@ -196,6 +198,7 @@ export function User() {
               Email <span className="text-red-500">*</span>
             </label>
             <input
+              id="email"
               type="email"
               placeholder="Email"
               {...register("email")}
@@ -214,6 +217,7 @@ export function User() {
               Password <span className="text-red-500">*</span>
             </label>
             <input
+              id="password"
               type="password"
               placeholder="Password"
               {...register("password")}
@@ -232,7 +236,8 @@ export function User() {
               Phone Number <span className="text-red-500">*</span>
             </label>
             <input
-              type="text"
+              id="phone_number"
+              type="tel"
               placeholder="Phone Number"
               {...register("phoneNumber")}
               className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg shadow-inner text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
@@ -245,7 +250,11 @@ export function User() {
           <button
             type="submit"
             disabled={isLoading}
-            className={`w-full py-3 ${isLoading ? 'bg-gray-500' : 'bg-green-600 hover:bg-red-700'} text-white font-semibold rounded-lg transition duration-200`}
+            className={`w-full py-3 font-semibold rounded-lg transition duration-200 ${
+              isLoading 
+                ? 'bg-gray-500 cursor-not-allowed' 
+                : 'bg-green-600 hover:bg-green-700 active:bg-green-800'
+            } text-white`}
           >
             {isLoading ? 'Signing Up...' : 'Sign Up'}
           </button>
@@ -254,8 +263,8 @@ export function User() {
         <p className="text-center text-sm text-gray-500 mt-6">
           Already have an account?{" "}
           <Link
-            to={"/Login"}
-            className="text-green-600 font-medium hover:underline"
+            to="/login"
+            className="text-green-400 font-medium hover:text-green-300 hover:underline transition-colors"
           >
             Login here
           </Link>

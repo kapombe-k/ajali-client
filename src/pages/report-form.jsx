@@ -91,7 +91,7 @@ export default function ReportForm({ locationData, setLocationData }) {
       const reportResponse = await axios.post(`${BASE_URL}/reports`, reportData, {
         headers: {
           'Content-Type': 'application/json',
-           Authorization: `Bearer ${access_token}`,
+          'Authorization': `Bearer ${access_token}`,
         }
       });
 
