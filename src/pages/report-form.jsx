@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import axios from "axios";
 import { useSearchParams, useNavigate } from "react-router-dom";
-import { BASE_URL } from "../../utils";
+import { BASE_URL, supabase } from "../../utils";
 
 export default function ReportForm({ locationData, setLocationData }) {
    const [searchParams] = useSearchParams();
@@ -98,32 +98,44 @@ export default function ReportForm({ locationData, setLocationData }) {
       const report = reportResponse.data;
       console.log("Report created:", report);
 
-      // Step 2: Handle media uploads
+      // Step 2: Handle media uploads to Supabase Storage
       if (mediaFiles.length > 0) {
-        console.log(`Preparing to upload ${mediaFiles.length} files`);
+        console.log(`Preparing to upload ${mediaFiles.length} files to Supabase`);
 
-        const uploadFormData = new FormData();
-        mediaFiles.forEach((file) => {
-          uploadFormData.append('media', file);
-          console.log("Added file:", file.name);
-        });
+        const mediaUrls = [];
+        for (const file of mediaFiles) {
+          const fileName = `${Date.now()}-${file.name}`;
+          console.log("Uploading file:", file.name, "as", fileName);
 
-        // Debug: Show FormData contents
-        for (let [key, value] of uploadFormData.entries()) {
-          console.log(key, value);
+          const { data, error } = await supabase.storage
+            .from('digital media')
+            .upload(fileName, file);
+
+          if (error) {
+            console.error("Upload error:", error);
+            throw new Error(`Failed to upload ${file.name}: ${error.message}`);
+          }
+
+          const { data: urlData } = supabase.storage
+            .from('digital media')
+            .getPublicUrl(fileName);
+
+          mediaUrls.push(urlData.publicUrl);
+          console.log("Uploaded:", urlData.publicUrl);
         }
 
+        // Send media URLs to backend
         const uploadResponse = await axios.post(
           `${BASE_URL}/reports/${report.id}/media`,
-          uploadFormData,
+          { media_urls: mediaUrls },
           {
             headers: {
-              'Content-Type': 'multipart/form-data',
+              'Content-Type': 'application/json',
               Authorization: `Bearer ${access_token}`,
             }
           }
         );
-        console.log("Upload response:", uploadResponse.data);
+        console.log("Backend response:", uploadResponse.data);
       }
 
       // Reset form on success
